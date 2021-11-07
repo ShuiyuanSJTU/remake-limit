@@ -1,0 +1,4 @@
+zh_CN:
+  site_settings:
+    remake_limit_enabled: "启用转生限制插件"
+    remake_limit_period: "转生间隔天数"
