@@ -1,4 +1,4 @@
-# **Plugin Name** Plugin
+# **Discourse-remake-limit** Plugin
 
 **Plugin Summary**
 
