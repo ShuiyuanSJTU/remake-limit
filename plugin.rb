@@ -32,6 +32,7 @@ after_initialize do
         def add_remake_limit
             if SiteSetting.remake_limit_enabled
                 @user = fetch_user_from_params
+                guardian.ensure_can_delete_user!(@user)
                 ::PluginStore.set("remake-limit", @user.email, Time.now)
             end
         end
