@@ -4,9 +4,11 @@
 # about: limit user remake frequency
 # version: 0.0.1
 # authors: dujiajun
-# url: https://github.com/dujiajun/remake-limit
+# url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
 # transpile_js: true
+
+PLUGIN_NAME ||= 'remake-limit'.freeze
 
 enabled_site_setting :remake_limit_enabled
 
@@ -17,7 +19,7 @@ after_initialize do
 
     def check_remake_limit
       if SiteSetting.remake_limit_enabled
-        old = ::PluginStore.get("remake-limit", params[:email])
+        old = ::PluginStore.get(PLUGIN_NAME, params[:email])
           if old
             time = Time.parse(old) + SiteSetting.remake_limit_period * 86400
               if Time.now < time
@@ -33,7 +35,7 @@ after_initialize do
       if SiteSetting.remake_limit_enabled
         @user = fetch_user_from_params
           guardian.ensure_can_delete_user!(@user)
-          ::PluginStore.set("remake-limit", @user.email, Time.now)
+          ::PluginStore.set(PLUGIN_NAME, @user.email, Time.now)
       end
     end
 
