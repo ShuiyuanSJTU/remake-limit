@@ -9,6 +9,7 @@
 # transpile_js: true
 
 PLUGIN_NAME ||= 'remake-limit'.freeze
+REMAKE_LIMIT_FOR_SILENCED = 'remake-limit-for-silenced'.freeze
 
 enabled_site_setting :remake_limit_enabled
 
@@ -19,13 +20,21 @@ after_initialize do
 
     def check_remake_limit
       if SiteSetting.remake_limit_enabled
-        old = ::PluginStore.get(PLUGIN_NAME, params[:email])
-          if old
-            time = Time.parse(old) + SiteSetting.remake_limit_period * 86400
-              if Time.now < time
-                render json: { success: false, message: "您的邮箱正处于转生限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S %Z")}之后再注册！" }
-              end
+        remake_at = ::PluginStore.get(PLUGIN_NAME, params[:email])
+        if remake_at
+          time = Time.parse(remake_at) + SiteSetting.remake_limit_period * 86400
+          if Time.now < time
+            render json: { success: false, message: "您正处于转生限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S")}之后再注册！" }
+            return
           end
+        end
+        silence_till = ::PluginStore.get(REMAKE_LIMIT_FOR_SILENCED, params[:email])
+        if silence_till
+          time = Time.parse(silence_till)
+          if Time.now < time
+            render json: { success: false, message: "您正处于转生限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S")}之后再注册！" }
+          end
+        end
       end
     end
 
@@ -34,8 +43,12 @@ after_initialize do
     def add_remake_limit
       if SiteSetting.remake_limit_enabled
         @user = fetch_user_from_params
-          guardian.ensure_can_delete_user!(@user)
-          ::PluginStore.set(PLUGIN_NAME, @user.email, Time.now)
+        guardian.ensure_can_delete_user!(@user)
+        key = @user.email
+        ::PluginStore.set(PLUGIN_NAME, key, Time.now)
+        if @user.silenced?
+          ::PluginStore.set(REMAKE_LIMIT_FOR_SILENCED, key, @user.silenced_till)
+        end
       end
     end
 
