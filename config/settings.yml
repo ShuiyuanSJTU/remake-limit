@@ -6,3 +6,5 @@ plugins:
     type: number
     default: 30
     client: false
+  remake_silenced_can_delete:
+    default: false

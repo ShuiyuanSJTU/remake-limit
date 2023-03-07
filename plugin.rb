@@ -2,8 +2,8 @@
 
 # name: discourse-remake-limit
 # about: limit user remake frequency
-# version: 0.0.1
-# authors: dujiajun
+# version: 0.0.2
+# authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
 # transpile_js: true
