@@ -2,8 +2,8 @@
 
 # name: discourse-remake-limit
 # about: limit user remake frequency
-# version: 0.0.1
-# authors: dujiajun
+# version: 0.0.2
+# authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
 # transpile_js: true
@@ -39,6 +39,17 @@ after_initialize do
       end
     end
 
+  end
+
+  module OverrideUserGuardian
+    def can_delete_user?(user)
+      return false if is_me?(user) && user.silenced? && !SiteSetting.remake_silenced_can_delete
+      super
+    end
+  end
+
+  class ::Guardian
+    prepend OverrideUserGuardian
   end
 
 end

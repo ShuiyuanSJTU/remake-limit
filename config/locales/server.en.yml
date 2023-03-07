@@ -2,3 +2,4 @@ en:
   site_settings:
     remake_limit_enabled: "Enable remake-limit plugin?"
     remake_limit_period: "Days of remake frequency"
+    remake_silenced_can_delete: "Whether silenced user can delete self"
