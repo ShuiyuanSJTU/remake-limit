@@ -36,9 +36,22 @@ after_initialize do
         @user = fetch_user_from_params
           guardian.ensure_can_delete_user!(@user)
           ::PluginStore.set(PLUGIN_NAME, @user.email, Time.now)
+        if @user.silenced? && !SiteSetting.remake_silenced_can_delete
+          render json: { error: "您的账号处于禁言状态，无法自助删除账户，请与管理人员联系！"}, status: :unprocessable_entity
+        end
       end
     end
-
   end
+
+  # module OverrideUserGuardian
+  #   def can_delete_user?(user)
+  #     return false if is_me?(user) && user.silenced? && !SiteSetting.remake_silenced_can_delete
+  #     super
+  #   end
+  # end
+
+  # class ::Guardian
+  #   prepend OverrideUserGuardian
+  # end
 
 end
