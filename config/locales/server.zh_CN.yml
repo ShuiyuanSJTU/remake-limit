@@ -2,3 +2,4 @@ zh_CN:
   site_settings:
     remake_limit_enabled: "启用转生限制插件"
     remake_limit_period: "转生间隔天数"
+    remake_silenced_can_delete: "被禁言的用户是否可以删除自己"
