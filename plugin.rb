@@ -2,13 +2,17 @@
 
 # name: discourse-remake-limit
 # about: limit user remake frequency
-# version: 0.0.2
+# version: 0.0.3
 # authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
 # transpile_js: true
 
 PLUGIN_NAME ||= 'remake-limit'.freeze
+PENALTY_HISTORY_STORE_KEY ||= (PLUGIN_NAME+'-penalty-history').freeze
+
+SJTU_EMAIL = '@sjtu.edu.cn'.freeze
+SJTU_ALUMNI_EMAIL = '@alumni.sjtu.edu.cn'.freeze
 
 enabled_site_setting :remake_limit_enabled
 
@@ -43,6 +47,83 @@ after_initialize do
     end
   end
 
+  class ::TrustLevel3Requirements
+    def penalty_counts_all_time
+      args = {
+        user_id: @user.id,
+        system_user_id: Discourse.system_user.id,
+        silence_user: UserHistory.actions[:silence_user],
+        unsilence_user: UserHistory.actions[:unsilence_user],
+        suspend_user: UserHistory.actions[:suspend_user],
+        unsuspend_user: UserHistory.actions[:unsuspend_user],
+      }
+
+      sql = <<~SQL
+        SELECT
+        SUM(
+            CASE
+              WHEN action = :silence_user THEN 1
+              WHEN action = :unsilence_user AND acting_user_id != :system_user_id THEN -1
+              ELSE 0
+            END
+          ) AS silence_count,
+          SUM(
+            CASE
+              WHEN action = :suspend_user THEN 1
+              WHEN action = :unsuspend_user AND acting_user_id != :system_user_id THEN -1
+              ELSE 0
+            END
+          ) AS suspend_count
+        FROM user_histories AS uh
+        WHERE uh.target_user_id = :user_id
+          AND uh.action IN (:silence_user, :suspend_user, :unsilence_user, :unsuspend_user)
+      SQL
+
+      PenaltyCounts.new(@user, DB.query_hash(sql, args).first)
+    end
+  end
+
+  module OverrideUserDestroyer
+    def destroy(user, opts = {})
+      pc = TrustLevel3Requirements.new(user).penalty_counts_all_time
+      current_user_pc_hash = {
+        silenced: pc.silenced,
+        suspended: pc.suspended
+      }
+      plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
+      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL,SJTU_EMAIL)
+      email_history = plugin_store.get(user_email) || Hash.new
+      email_history[user.id] = current_user_pc_hash
+      plugin_store.set(user_email, email_history)
+      super
+    end
+  end
+
+  class ::UserDestroyer
+    prepend OverrideUserDestroyer
+  end
+
+  module OverrideAdminDetailedUserSerializer
+    def penalty_counts
+      pc = TrustLevel3Requirements.new(object).penalty_counts
+      penalty_counts = {
+        "silence_count" => pc.silenced || 0,
+        "suspended_count" => pc.suspended || 0
+      }
+      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL,SJTU_EMAIL)
+      penalty_counts_history = PluginStore.get(PENALTY_HISTORY_STORE_KEY,user_email) || Hash.new
+      penalty_counts_history.each do |key, value|
+        next if key == user.id.to_s
+        penalty_counts["silence_count"] += value[:silenced]
+        penalty_counts["suspended_count"] += value[:suspended]
+      end
+      TrustLevel3Requirements::PenaltyCounts.new(user, penalty_counts)
+    end
+  end
+
+  class ::AdminDetailedUserSerializer
+    prepend OverrideAdminDetailedUserSerializer
+  end
   # module OverrideUserGuardian
   #   def can_delete_user?(user)
   #     return false if is_me?(user) && user.silenced? && !SiteSetting.remake_silenced_can_delete
