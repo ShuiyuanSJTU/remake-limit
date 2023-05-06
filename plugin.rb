@@ -9,7 +9,7 @@
 # transpile_js: true
 
 PLUGIN_NAME ||= 'remake-limit'.freeze
-PENALTY_HISTORY_STORE_KEY ||= (PLUGIN_NAME+'-penalty-history').freeze
+PENALTY_HISTORY_STORE_KEY ||= (PLUGIN_NAME + '-penalty-history').freeze
 
 SJTU_EMAIL = '@sjtu.edu.cn'.freeze
 SJTU_ALUMNI_EMAIL = '@alumni.sjtu.edu.cn'.freeze
@@ -41,7 +41,7 @@ after_initialize do
           guardian.ensure_can_delete_user!(@user)
           ::PluginStore.set(PLUGIN_NAME, @user.email, Time.now)
         if @user.silenced? && !SiteSetting.remake_silenced_can_delete
-          render json: { error: "您的账号处于禁言状态，无法自助删除账户，请与管理人员联系！"}, status: :unprocessable_entity
+          render json: { error: "您的账号处于禁言状态，无法自助删除账户，请与管理人员联系！" }, status: :unprocessable_entity
         end
       end
     end
@@ -89,7 +89,7 @@ after_initialize do
         suspended: pc.suspended
       }
       plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
-      user_email = @user.email.gsub(SJTU_ALUMNI_EMAIL,SJTU_EMAIL)
+      user_email = @user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
       email_history = plugin_store.get(user_email) || Hash.new
       email_history[@user.id] = current_user_pc_hash
       plugin_store.set(user_email, email_history)
@@ -126,8 +126,8 @@ after_initialize do
         "silence_count" => pc.silenced || 0,
         "suspended_count" => pc.suspended || 0
       }
-      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL,SJTU_EMAIL)
-      penalty_counts_history = PluginStore.get(PENALTY_HISTORY_STORE_KEY,user_email) || Hash.new
+      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
+      penalty_counts_history = PluginStore.get(PENALTY_HISTORY_STORE_KEY, user_email) || Hash.new
       penalty_counts_history.each do |key, value|
         next if key == user.id.to_s
         penalty_counts["silence_count"] += value[:silenced]
