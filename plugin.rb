@@ -2,7 +2,7 @@
 
 # name: discourse-remake-limit
 # about: limit user remake frequency
-# version: 0.0.3
+# version: 0.0.4
 # authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
@@ -81,26 +81,42 @@ after_initialize do
 
       PenaltyCounts.new(@user, DB.query_hash(sql, args).first)
     end
-  end
 
-  module OverrideUserDestroyer
-    def destroy(user, opts = {})
-      pc = TrustLevel3Requirements.new(user).penalty_counts_all_time
+    def save_penalty_counts
+      pc = penalty_counts_all_time
       current_user_pc_hash = {
         silenced: pc.silenced,
         suspended: pc.suspended
       }
       plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
-      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL,SJTU_EMAIL)
+      user_email = @user.email.gsub(SJTU_ALUMNI_EMAIL,SJTU_EMAIL)
       email_history = plugin_store.get(user_email) || Hash.new
-      email_history[user.id] = current_user_pc_hash
+      email_history[@user.id] = current_user_pc_hash
       plugin_store.set(user_email, email_history)
+    end
+
+  end
+
+  module OverrideUserDestroyer
+    def destroy(user, opts = {})
+      TrustLevel3Requirements.new(user).save_penalty_counts
       super
     end
   end
 
   class ::UserDestroyer
     prepend OverrideUserDestroyer
+  end
+
+  module OverrideUserAnonymizer
+    def make_anonymous
+      TrustLevel3Requirements.new(@user).save_penalty_counts
+      super
+    end
+  end
+
+  class ::UserAnonymizer
+    prepend OverrideUserAnonymizer
   end
 
   module OverrideAdminDetailedUserSerializer
