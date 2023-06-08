@@ -91,7 +91,7 @@ after_initialize do
       plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
       user_email = @user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
       email_history = plugin_store.get(user_email) || Hash.new
-      email_history[@user.id] = current_user_pc_hash
+      email_history[@user.id.to_s] = current_user_pc_hash
       plugin_store.set(user_email, email_history)
     end
 
