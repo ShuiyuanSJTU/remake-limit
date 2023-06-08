@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# name: discourse-remake-limit
+# name: remake-limit
 # about: limit user remake frequency
 # version: 0.0.4
 # authors: dujiajun,pangbo
