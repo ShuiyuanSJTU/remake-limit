@@ -121,7 +121,7 @@ after_initialize do
 
   module OverrideAdminDetailedUserSerializer
     def penalty_counts
-      pc = TrustLevel3Requirements.new(object).penalty_counts
+      pc = TrustLevel3Requirements.new(object).penalty_counts_all_time
       penalty_counts = {
         "silence_count" => pc.silenced || 0,
         "suspended_count" => pc.suspended || 0
