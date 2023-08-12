@@ -2,7 +2,7 @@
 
 # name: remake-limit
 # about: limit user remake frequency
-# version: 0.0.4
+# version: 0.0.5
 # authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
@@ -38,8 +38,11 @@ after_initialize do
     def add_remake_limit
       if SiteSetting.remake_limit_enabled
         @user = fetch_user_from_params
-          guardian.ensure_can_delete_user!(@user)
-          ::PluginStore.set(PLUGIN_NAME, @user.email, Time.now)
+        guardian.ensure_can_delete_user!(@user)
+        ::PluginStore.set(PLUGIN_NAME, @user.email, Time.now)
+        if defined?(::DiscourseUserNotes)
+          ::DiscourseUserNotes.add_note(@user, "用户尝试删除账号", Discourse.system_user.id)
+        end
         if @user.silenced? && !SiteSetting.remake_silenced_can_delete
           render json: { error: "您的账号处于禁言状态，无法自助删除账户，请与管理人员联系！" }, status: :unprocessable_entity
         end
@@ -140,15 +143,5 @@ after_initialize do
   class ::AdminDetailedUserSerializer
     prepend OverrideAdminDetailedUserSerializer
   end
-  # module OverrideUserGuardian
-  #   def can_delete_user?(user)
-  #     return false if is_me?(user) && user.silenced? && !SiteSetting.remake_silenced_can_delete
-  #     super
-  #   end
-  # end
-
-  # class ::Guardian
-  #   prepend OverrideUserGuardian
-  # end
 
 end
