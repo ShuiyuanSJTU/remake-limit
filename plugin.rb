@@ -2,7 +2,7 @@
 
 # name: remake-limit
 # about: limit user remake frequency
-# version: 0.0.5
+# version: 0.0.6
 # authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
@@ -15,6 +15,9 @@ SJTU_EMAIL = '@sjtu.edu.cn'.freeze
 SJTU_ALUMNI_EMAIL = '@alumni.sjtu.edu.cn'.freeze
 
 enabled_site_setting :remake_limit_enabled
+
+module ::RemakeLimit
+end
 
 after_initialize do
   class ::UsersController
@@ -97,7 +100,6 @@ after_initialize do
       email_history[@user.id.to_s] = current_user_pc_hash
       plugin_store.set(user_email, email_history)
     end
-
   end
 
   module OverrideUserDestroyer
@@ -127,14 +129,14 @@ after_initialize do
       pc = TrustLevel3Requirements.new(object).penalty_counts_all_time
       penalty_counts = {
         "silence_count" => pc.silenced || 0,
-        "suspended_count" => pc.suspended || 0
+        "suspend_count" => pc.suspended || 0
       }
       user_email = user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
       penalty_counts_history = PluginStore.get(PENALTY_HISTORY_STORE_KEY, user_email) || Hash.new
       penalty_counts_history.each do |key, value|
         next if key == user.id.to_s
         penalty_counts["silence_count"] += value[:silenced]
-        penalty_counts["suspended_count"] += value[:suspended]
+        penalty_counts["suspend_count"] += value[:suspended]
       end
       TrustLevel3Requirements::PenaltyCounts.new(user, penalty_counts)
     end
@@ -144,4 +146,21 @@ after_initialize do
     prepend OverrideAdminDetailedUserSerializer
   end
 
+  on(:user_created) do |user|
+    if defined?(::DiscourseUserNotes)
+      plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
+      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
+      email_history = plugin_store.get(user_email)
+      silence_count = 0
+      suspended_counts = 0
+      email_history.each do |key, value|
+        next if key == user.id.to_s
+        silence_count += value[:silenced]
+        suspended_counts += value[:suspended]
+      end
+      if email_history.present?
+        ::DiscourseUserNotes.add_note(user, "查询到该用户邮箱历史账号有#{silence_count}次禁言、#{suspended_counts}次封禁记录", Discourse.system_user.id)
+      end
+    end
+  end
 end
