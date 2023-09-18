@@ -2,7 +2,7 @@
 
 # name: remake-limit
 # about: limit user remake frequency
-# version: 0.0.6
+# version: 0.0.7
 # authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
@@ -153,12 +153,12 @@ after_initialize do
       email_history = plugin_store.get(user_email)
       silence_count = 0
       suspended_counts = 0
-      email_history.each do |key, value|
-        next if key == user.id.to_s
-        silence_count += value[:silenced]
-        suspended_counts += value[:suspended]
-      end
       if email_history.present?
+        email_history.each do |key, value|
+          next if key == user.id.to_s
+          silence_count += value[:silenced]
+          suspended_counts += value[:suspended]
+        end
         ::DiscourseUserNotes.add_note(user, "查询到该用户邮箱历史账号有#{silence_count}次禁言、#{suspended_counts}次封禁记录", Discourse.system_user.id)
       end
     end
