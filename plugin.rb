@@ -30,7 +30,7 @@ after_initialize do
       if SiteSetting.remake_limit_enabled
         old = UserDeletionLog.find_latest_time_by_email(params[:email])
           if old
-            time = Time.parse(old) + SiteSetting.remake_limit_period.days
+            time = old.to_datetime + SiteSetting.remake_limit_period.days
               if Time.now < time
                 render json: { success: false, message: "您的邮箱正处于转生限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S %Z")}之后再注册！" }
               end
