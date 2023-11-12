@@ -27,9 +27,12 @@ class CreateUserDeletionLogs < ActiveRecord::Migration[7.0]
             end
         end
         PluginStoreRow.where(plugin_name:'remake-limit').each do |row|
-            record = UserDeletionLog.find_or_initialize_by(email: row.key)
-            record.created_at = row.value
-            record.save!
+            records = UserDeletionLog.where(email: row.key)
+            if records.count > 0
+                records.update_all(created_at: row.value)
+            else
+                record = UserDeletionLog.create(email: row.key, created_at: row.value)
+            end
         end
     end
   end
