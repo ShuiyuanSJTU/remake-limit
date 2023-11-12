@@ -26,7 +26,7 @@ after_initialize do
 
     def check_remake_limit
       if SiteSetting.remake_limit_enabled
-        old = ::PluginStore.get(PLUGIN_NAME, params[:email])
+        old = UserDeletionLog.find_latest_time_by_email(params[:email])
           if old
             time = Time.parse(old) + SiteSetting.remake_limit_period.days
               if Time.now < time
@@ -87,24 +87,11 @@ after_initialize do
 
       PenaltyCounts.new(@user, DB.query_hash(sql, args).first)
     end
-
-    def save_penalty_counts
-      pc = penalty_counts_all_time
-      current_user_pc_hash = {
-        silenced: pc.silenced,
-        suspended: pc.suspended
-      }
-      plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
-      user_email = @user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
-      email_history = plugin_store.get(user_email) || Hash.new
-      email_history[@user.id.to_s] = current_user_pc_hash
-      plugin_store.set(user_email, email_history)
-    end
   end
 
   module OverrideUserDestroyer
     def destroy(user, opts = {})
-      TrustLevel3Requirements.new(user).save_penalty_counts
+      UserDeletionLog.create_log(user)
       super
     end
   end
@@ -115,7 +102,7 @@ after_initialize do
 
   module OverrideUserAnonymizer
     def make_anonymous
-      TrustLevel3Requirements.new(@user).save_penalty_counts
+      UserDeletionLog.create_log(@user)
       super
     end
   end
@@ -131,13 +118,9 @@ after_initialize do
         "silence_count" => pc.silenced || 0,
         "suspend_count" => pc.suspended || 0
       }
-      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
-      penalty_counts_history = PluginStore.get(PENALTY_HISTORY_STORE_KEY, user_email) || Hash.new
-      penalty_counts_history.each do |key, value|
-        next if key == user.id.to_s
-        penalty_counts["silence_count"] += value[:silenced]
-        penalty_counts["suspend_count"] += value[:suspended]
-      end
+      account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(object)
+      penalty_counts["silence_count"] += silence_count
+      penalty_counts["suspend_count"] += suspend_count
       TrustLevel3Requirements::PenaltyCounts.new(user, penalty_counts)
     end
   end
@@ -148,18 +131,9 @@ after_initialize do
 
   on(:user_created) do |user|
     if defined?(::DiscourseUserNotes)
-      plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
-      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
-      email_history = plugin_store.get(user_email)
-      silence_count = 0
-      suspended_counts = 0
-      if email_history.present?
-        email_history.each do |key, value|
-          next if key == user.id.to_s
-          silence_count += value[:silenced]
-          suspended_counts += value[:suspended]
-        end
-        ::DiscourseUserNotes.add_note(user, "查询到该用户邮箱历史账号有#{silence_count}次禁言、#{suspended_counts}次封禁记录", Discourse.system_user.id)
+      account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(user)
+      if account_count > 0
+        ::DiscourseUserNotes.add_note(user, "查询到该用户存在#{account_count}个历史账号历史账号，共有#{silence_count}次禁言、#{suspended_counts}次封禁记录", Discourse.system_user.id)
       end
     end
   end
