@@ -36,6 +36,7 @@ class UserDeletionLog < ActiveRecord::Base
         jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
         jaccount_id = jaccount_account.provider_uid
         jaccount_name = jaccount_account.info&.fetch('account')
+        email = user.email
 
         records = UserDeletionLog.where("lower(email) = lower(?) OR lower(jaccount_name) = lower(?) OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id)
         account_count = records.count
