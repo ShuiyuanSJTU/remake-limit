@@ -44,7 +44,7 @@ after_initialize do
       if SiteSetting.remake_limit_enabled
         @user = fetch_user_from_params
         guardian.ensure_can_delete_user!(@user)
-        ::PluginStore.set(PLUGIN_NAME, @user.email, Time.now)
+        UserDeletionLog.create_log(@user)
         if defined?(::DiscourseUserNotes)
           ::DiscourseUserNotes.add_note(@user, "用户尝试删除账号", Discourse.system_user.id)
         end
@@ -91,27 +91,27 @@ after_initialize do
     end
   end
 
-  module OverrideUserDestroyer
-    def destroy(user, opts = {})
-      UserDeletionLog.create_log(user)
-      super
-    end
-  end
+  # module OverrideUserDestroyer
+  #   def destroy(user, opts = {})
+  #     UserDeletionLog.create_log(user)
+  #     super
+  #   end
+  # end
 
-  class ::UserDestroyer
-    prepend OverrideUserDestroyer
-  end
+  # class ::UserDestroyer
+  #   prepend OverrideUserDestroyer
+  # end
 
-  module OverrideUserAnonymizer
-    def make_anonymous
-      UserDeletionLog.create_log(@user)
-      super
-    end
-  end
+  # module OverrideUserAnonymizer
+  #   def make_anonymous
+  #     UserDeletionLog.create_log(@user)
+  #     super
+  #   end
+  # end
 
-  class ::UserAnonymizer
-    prepend OverrideUserAnonymizer
-  end
+  # class ::UserAnonymizer
+  #   prepend OverrideUserAnonymizer
+  # end
 
   module OverrideAdminDetailedUserSerializer
     def penalty_counts
