@@ -28,7 +28,7 @@ class UserDeletionLog < ActiveRecord::Base
         jaccount_id = jaccount_account.provider_uid
         jaccount_name = jaccount_account.info&.fetch('account')
         
-        record = UserDeletionLog.where("email = ? OR jaccount_name = ? OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id).order(created_at: :desc).first
+        record = UserDeletionLog.where("lower(email) = lower(?) OR lower(jaccount_name) = lower(?) OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id).order(created_at: :desc).first
         record&.created_at
     end
 
@@ -37,7 +37,7 @@ class UserDeletionLog < ActiveRecord::Base
         jaccount_id = jaccount_account.provider_uid
         jaccount_name = jaccount_account.info&.fetch('account')
 
-        records = UserDeletionLog.where("email = ? OR jaccount_name = ? OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id)
+        records = UserDeletionLog.where("lower(email) = lower(?) OR lower(jaccount_name) = lower(?) OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id)
         account_count = records.count
         silence_count = records.sum(:silence_count)
         suspend_count = records.sum(:suspend_count)
