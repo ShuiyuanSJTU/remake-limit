@@ -35,12 +35,17 @@ class UserDeletionLog < ActiveRecord::Base
     end
 
     def self.find_user_penalty_history(user)
-        jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
-        jaccount_id = jaccount_account.provider_uid
-        jaccount_name = jaccount_account.info&.fetch('account')
         email = user.email
+        jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
+        if jaccount_account.nil?
+            Rails.logger.warn("User #{user.id} has no jaccount_account")
+            records = UserDeletionLog.where("lower(email) = lower(?)",email).where("user_id != ? ",user.id)
+        else
+            jaccount_id = jaccount_account.provider_uid
+            jaccount_name = jaccount_account.info&.fetch('account')
 
-        records = UserDeletionLog.where("lower(email) = lower(?) OR lower(jaccount_name) = lower(?) OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id)
+            records = UserDeletionLog.where("lower(email) = lower(?) OR lower(jaccount_name) = lower(?) OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id)
+        end
         account_count = records.count
         silence_count = records.sum(:silence_count)
         suspend_count = records.sum(:suspend_count)
