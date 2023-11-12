@@ -44,7 +44,7 @@ after_initialize do
       if SiteSetting.remake_limit_enabled
         @user = fetch_user_from_params
         guardian.ensure_can_delete_user!(@user)
-        UserDeletionLog.create_log(@user)
+        UserDeletionLog.create_log(@user, true)
         if defined?(::DiscourseUserNotes)
           ::DiscourseUserNotes.add_note(@user, "用户尝试删除账号", Discourse.system_user.id)
         end
@@ -93,7 +93,7 @@ after_initialize do
 
   # module OverrideUserDestroyer
   #   def destroy(user, opts = {})
-  #     UserDeletionLog.create_log(user)
+  #     UserDeletionLog.create_log(user, false)
   #     super
   #   end
   # end
@@ -104,7 +104,7 @@ after_initialize do
 
   # module OverrideUserAnonymizer
   #   def make_anonymous
-  #     UserDeletionLog.create_log(@user)
+  #     UserDeletionLog.create_log(@user, false)
   #     super
   #   end
   # end

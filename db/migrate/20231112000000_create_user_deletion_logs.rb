@@ -9,6 +9,7 @@ class CreateUserDeletionLogs < ActiveRecord::Migration[7.0]
             t.string :jaccount_id
             t.integer :silence_count
             t.integer :suspend_count
+            t.datetime :user_deleted_at
     
             t.timestamps
         end
@@ -29,9 +30,9 @@ class CreateUserDeletionLogs < ActiveRecord::Migration[7.0]
         PluginStoreRow.where(plugin_name:'remake-limit').each do |row|
             records = UserDeletionLog.where(email: row.key)
             if records.count > 0
-                records.update_all(created_at: row.value)
+                records.update_all(user_deleted_at: row.value)
             else
-                record = UserDeletionLog.create(email: row.key, created_at: row.value)
+                record = UserDeletionLog.create(email: row.key, user_deleted_at: row.value)
             end
         end
     end
