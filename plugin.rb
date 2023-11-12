@@ -38,6 +38,19 @@ after_initialize do
       end
     end
 
+    after_action :add_user_note, only: [:create]
+
+    def add_user_note
+      # add penalty history to user notes
+      user = fetch_user_from_params
+      if defined?(::DiscourseUserNotes)
+        account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(user)
+        if account_count > 0
+          ::DiscourseUserNotes.add_note(user, "查询到该用户存在#{account_count}个历史账号历史账号，共有#{silence_count}次禁言、#{suspend_count}次封禁记录", Discourse.system_user.id)
+        end
+      end
+    end
+
     before_action :add_remake_limit, only: [:destroy]
 
     def add_remake_limit
@@ -129,23 +142,5 @@ after_initialize do
 
   class ::AdminDetailedUserSerializer
     prepend OverrideAdminDetailedUserSerializer
-  end
-
-  on(:user_created) do |user|
-    # double check
-    old = UserDeletionLog.find_latest_time(user)
-    if old
-      time = Time.parse(old) + SiteSetting.remake_limit_period.days
-      if Time.now < time
-        Rails.logger.warn("User #{user.id} has been created in remake limit period")
-      end
-    end
-    # add penalty history to user notes
-    if defined?(::DiscourseUserNotes)
-      account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(user)
-      if account_count > 0
-        ::DiscourseUserNotes.add_note(user, "查询到该用户存在#{account_count}个历史账号历史账号，共有#{silence_count}次禁言、#{suspended_counts}次封禁记录", Discourse.system_user.id)
-      end
-    end
   end
 end
