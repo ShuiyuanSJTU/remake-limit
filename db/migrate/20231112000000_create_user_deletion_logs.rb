@@ -1,5 +1,6 @@
+# frozen_string_literal: true
 class CreateUserDeletionLogs < ActiveRecord::Migration[7.0]
-    def up
+    def change
         create_table :user_deletion_logs do |t|
             t.integer :user_id
             t.string :username

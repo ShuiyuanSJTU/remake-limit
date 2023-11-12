@@ -16,6 +16,8 @@ SJTU_ALUMNI_EMAIL = '@alumni.sjtu.edu.cn'.freeze
 
 enabled_site_setting :remake_limit_enabled
 
+require_relative 'app/models/user_deletion_log.rb'
+
 module ::RemakeLimit
 end
 
