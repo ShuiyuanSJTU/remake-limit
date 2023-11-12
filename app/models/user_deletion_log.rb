@@ -23,12 +23,21 @@ class UserDeletionLog < ActiveRecord::Base
         record&.created_at
     end
 
+    def self.find_latest_time(user)
+        jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
+        jaccount_id = jaccount_account.provider_uid
+        jaccount_name = jaccount_account.info&.fetch('account')
+        
+        record = UserDeletionLog.where("email = ? OR jaccount_name = ? OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id).order(created_at: :desc).first
+        record&.created_at
+    end
+
     def self.find_user_penalty_history(user)
         jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
         jaccount_id = jaccount_account.provider_uid
         jaccount_name = jaccount_account.info&.fetch('account')
 
-        records = UserDeletionLog.where("email = ? OR jaccount_name = ? OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id `!= ? ",user.id)
+        records = UserDeletionLog.where("email = ? OR jaccount_name = ? OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id)
         account_count = records.count
         silence_count = records.sum(:silence_count)
         suspend_count = records.sum(:suspend_count)

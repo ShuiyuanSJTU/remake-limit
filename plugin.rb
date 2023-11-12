@@ -132,6 +132,15 @@ after_initialize do
   end
 
   on(:user_created) do |user|
+    # double check
+    old = UserDeletionLog.find_latest_time(user)
+    if old
+      time = Time.parse(old) + SiteSetting.remake_limit_period.days
+      if Time.now < time
+        Rails.logger.warn("User #{user.id} has been created in remake limit period")
+      end
+    end
+    # add penalty history to user notes
     if defined?(::DiscourseUserNotes)
       account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(user)
       if account_count > 0
