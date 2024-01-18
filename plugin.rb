@@ -32,7 +32,7 @@ after_initialize do
           if old
             time = old.to_datetime + SiteSetting.remake_limit_period.days
               if Time.now < time
-                render json: { success: false, message: "您的邮箱正处于转生限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S %Z")}之后再注册！" }
+                render json: { success: false, message: "您的邮箱正处于注册限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S %Z")}之后再注册！" }
               end
           end
       end
@@ -163,7 +163,7 @@ after_initialize do
           time = old.to_datetime + SiteSetting.remake_limit_period.days
             if Time.now < time
               result.failed = true
-              result.failed_reason = "您的账号正处于转生限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S %Z")}之后再登录！"
+              result.failed_reason = "您的账号正处于注册限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S %Z")}之后再登录！"
               result.name = nil
               result.username = nil
               result.email = nil
