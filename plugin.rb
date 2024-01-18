@@ -164,6 +164,12 @@ after_initialize do
             if Time.now < time
               result.failed = true
               result.failed_reason = "您的账号正处于转生限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S %Z")}之后再登录！"
+              result.name = nil
+              result.username = nil
+              result.email = nil
+              result.email_valid = nil
+              result.extra_data = nil
+            result
             end
         end
         return result
