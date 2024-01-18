@@ -11,10 +11,14 @@ class UserDeletionLog < ActiveRecord::Base
         record.username = user.username
         record.email = user.email.downcase
         jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
-        record.jaccount_id = jaccount_account.provider_uid
-        record.jaccount_name = jaccount_account.info&.fetch('account').downcase
-        if record.jaccount_name.nil?
-            Rails.logger.warn("User #{user.id} has no jaccount_name \n #{jaccount_account}")
+        if jaccount_account.nil?
+            Rails.logger.warn("User #{user.id} has no associated jaccount")
+        else
+            record.jaccount_id = jaccount_account.provider_uid
+            record.jaccount_name = jaccount_account.info&.fetch('account').downcase
+            if record.jaccount_name.nil?
+                Rails.logger.warn("User #{user.id} has an associated jaccount, but has no jaccount_name \n #{jaccount_account}")
+            end
         end
         pc = TrustLevel3Requirements.new(user).penalty_counts_all_time
         record.silence_count = pc.silenced
