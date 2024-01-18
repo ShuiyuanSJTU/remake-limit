@@ -29,6 +29,7 @@ class UserDeletionLog < ActiveRecord::Base
         email = email.downcase
         if jaccount_name.nil?
             jaccount_name = email.split("@").first
+        end
         record = UserDeletionLog.where("email = ? OR jaccount_name = ?",email,jaccount_name).where("user_deleted_at is NOT NULL").where(ignore_limit:false).order(user_deleted_at: :desc).first
         record&.user_deleted_at
     end
