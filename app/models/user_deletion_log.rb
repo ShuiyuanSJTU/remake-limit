@@ -6,7 +6,7 @@
 
 class UserDeletionLog < ActiveRecord::Base
     JACCOUNT_PROVIDER_NAME ||= 'jaccount'.freeze
-    def self.create_log(user, refresh_delete_time = true)
+    def self.create_log(user, refresh_delete_time = true, ignore_limit = false)
         record = UserDeletionLog.find_or_initialize_by(user_id: user.id)
         record.username = user.username
         record.email = user.email.downcase
@@ -23,7 +23,11 @@ class UserDeletionLog < ActiveRecord::Base
         pc = TrustLevel3Requirements.new(user).penalty_counts_all_time
         record.silence_count = pc.silenced
         record.suspend_count = pc.suspended
-        if refresh_delete_time
+        if record.user_deleted_at.nil? && ignore_limit
+            # A new record and ignore_limit is true
+            record.ignore_limit = true
+        end
+        if record.user_deleted_at.nil? || refresh_delete_time
             record.user_deleted_at = Time.now
         end
         record.save!
