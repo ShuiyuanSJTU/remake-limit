@@ -36,11 +36,16 @@ class CreateUserDeletionLogs < ActiveRecord::Migration[7.0]
             end
         end
         PluginStoreRow.where(plugin_name:'remake-limit').each do |row|
-            records = UserDeletionLog.where(email: row.key.downcase)
+            email = row.key.downcase
+            records = UserDeletionLog.where(email: email)
             if records.count > 0
-                records.update_all(user_deleted_at: row.value)
+                records.order(user_id: :desc).first.update(user_deleted_at: row.value)
             else
-                record = UserDeletionLog.create(email: row.key.downcase, user_deleted_at: row.value)
+                record = UserDeletionLog.create(email: email, user_deleted_at: row.value)
+                if email.end_with?(SJTU_EMAIL) || email.end_with?(SJTU_ALUMNI_EMAIL)
+                    record.jaccount_name = email.split("@").first.downcase
+                end
+                record.save!
             end
         end
     end
