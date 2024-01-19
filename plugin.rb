@@ -133,7 +133,7 @@ after_initialize do
         "silence_count" => pc.silenced || 0,
         "suspend_count" => pc.suspended || 0
       }
-      account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(object)
+      account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(object,ignore_jaccount_not_found: true)
       penalty_counts["silence_count"] += silence_count
       penalty_counts["suspend_count"] += suspend_count
       TrustLevel3Requirements::PenaltyCounts.new(user, penalty_counts)

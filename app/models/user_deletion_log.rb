@@ -57,13 +57,15 @@ class UserDeletionLog < ActiveRecord::Base
         record&.user_deleted_at
     end
 
-    def self.find_user_penalty_history(user)
+    def self.find_user_penalty_history(user, ignore_jaccount_not_found = false)
         # ignore `ignore_limit` field as it is only used for cooldown time calculation
         # do not count current user
         email = user.email
         jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
         if jaccount_account.nil?
-            Rails.logger.warn("User #{user.id} has no jaccount_account")
+            if ignore_jaccount_not_found
+                Rails.logger.warn("User #{user.id} has no jaccount_account")
+            end
             records = UserDeletionLog.where(email: email).where("user_id != ? ",user.id)
         else
             jaccount_id = jaccount_account.provider_uid
