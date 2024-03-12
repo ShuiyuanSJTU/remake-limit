@@ -2,7 +2,7 @@
 
 # name: remake-limit
 # about: limit user remake frequency
-# version: 0.0.7
+# version: 0.1.0
 # authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
@@ -16,6 +16,8 @@ SJTU_ALUMNI_EMAIL = '@alumni.sjtu.edu.cn'.freeze
 
 enabled_site_setting :remake_limit_enabled
 
+require_relative 'app/models/user_deletion_log.rb'
+
 module ::RemakeLimit
 end
 
@@ -26,13 +28,26 @@ after_initialize do
 
     def check_remake_limit
       if SiteSetting.remake_limit_enabled
-        old = ::PluginStore.get(PLUGIN_NAME, params[:email])
+        old = UserDeletionLog.find_latest_time_by_email(params[:email])
           if old
-            time = Time.parse(old) + SiteSetting.remake_limit_period.days
+            time = old.to_datetime + SiteSetting.remake_limit_period.days
               if Time.now < time
-                render json: { success: false, message: "您的邮箱正处于转生限制期，请于#{time.strftime("%Y-%m-%d %H:%M:%S %Z")}之后再注册！" }
+                render json: { success: false, message: "您的邮箱正处于注册限制期，请于#{time.in_time_zone('Asia/Shanghai').strftime("%Y-%m-%d %H:%M:%S %Z")}之后再注册！" }
               end
           end
+      end
+    end
+
+    after_action :add_user_note, only: [:create]
+
+    def add_user_note
+      # add penalty history to user notes
+      if defined?(::DiscourseUserNotes)
+        user = fetch_user_from_params
+        account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(user)
+        if account_count > 0
+          ::DiscourseUserNotes.add_note(user, "查询到该用户存在#{account_count}个历史账号历史账号，共有#{silence_count}次禁言、#{suspend_count}次封禁记录", Discourse.system_user.id)
+        end
       end
     end
 
@@ -42,7 +57,7 @@ after_initialize do
       if SiteSetting.remake_limit_enabled
         @user = fetch_user_from_params
         guardian.ensure_can_delete_user!(@user)
-        ::PluginStore.set(PLUGIN_NAME, @user.email, Time.now)
+        UserDeletionLog.create_log(@user, true)
         if defined?(::DiscourseUserNotes)
           ::DiscourseUserNotes.add_note(@user, "用户尝试删除账号", Discourse.system_user.id)
         end
@@ -87,42 +102,29 @@ after_initialize do
 
       PenaltyCounts.new(@user, DB.query_hash(sql, args).first)
     end
-
-    def save_penalty_counts
-      pc = penalty_counts_all_time
-      current_user_pc_hash = {
-        silenced: pc.silenced,
-        suspended: pc.suspended
-      }
-      plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
-      user_email = @user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
-      email_history = plugin_store.get(user_email) || Hash.new
-      email_history[@user.id.to_s] = current_user_pc_hash
-      plugin_store.set(user_email, email_history)
-    end
   end
 
-  module OverrideUserDestroyer
-    def destroy(user, opts = {})
-      TrustLevel3Requirements.new(user).save_penalty_counts
-      super
-    end
-  end
+  # module OverrideUserDestroyer
+  #   def destroy(user, opts = {})
+  #     UserDeletionLog.create_log(user, false)
+  #     super
+  #   end
+  # end
 
-  class ::UserDestroyer
-    prepend OverrideUserDestroyer
-  end
+  # class ::UserDestroyer
+  #   prepend OverrideUserDestroyer
+  # end
 
-  module OverrideUserAnonymizer
-    def make_anonymous
-      TrustLevel3Requirements.new(@user).save_penalty_counts
-      super
-    end
-  end
+  # module OverrideUserAnonymizer
+  #   def make_anonymous
+  #     UserDeletionLog.create_log(@user, false)
+  #     super
+  #   end
+  # end
 
-  class ::UserAnonymizer
-    prepend OverrideUserAnonymizer
-  end
+  # class ::UserAnonymizer
+  #   prepend OverrideUserAnonymizer
+  # end
 
   module OverrideAdminDetailedUserSerializer
     def penalty_counts
@@ -131,13 +133,9 @@ after_initialize do
         "silence_count" => pc.silenced || 0,
         "suspend_count" => pc.suspended || 0
       }
-      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
-      penalty_counts_history = PluginStore.get(PENALTY_HISTORY_STORE_KEY, user_email) || Hash.new
-      penalty_counts_history.each do |key, value|
-        next if key == user.id.to_s
-        penalty_counts["silence_count"] += value[:silenced]
-        penalty_counts["suspend_count"] += value[:suspended]
-      end
+      account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(object,ignore_jaccount_not_found: true)
+      penalty_counts["silence_count"] += silence_count
+      penalty_counts["suspend_count"] += suspend_count
       TrustLevel3Requirements::PenaltyCounts.new(user, penalty_counts)
     end
   end
@@ -146,21 +144,40 @@ after_initialize do
     prepend OverrideAdminDetailedUserSerializer
   end
 
-  on(:user_created) do |user|
-    if defined?(::DiscourseUserNotes)
-      plugin_store = PluginStore.new(PENALTY_HISTORY_STORE_KEY)
-      user_email = user.email.gsub(SJTU_ALUMNI_EMAIL, SJTU_EMAIL)
-      email_history = plugin_store.get(user_email)
-      silence_count = 0
-      suspended_counts = 0
-      if email_history.present?
-        email_history.each do |key, value|
-          next if key == user.id.to_s
-          silence_count += value[:silenced]
-          suspended_counts += value[:suspended]
+  module OverrideJAccountAuthenticator
+    def after_authenticate(auth_token)
+      result = super(auth_token)
+      if result.failed || !result.user.nil? || !SiteSetting.remake_limit_enabled
+        return result
+      else
+        # For more detail:
+        # https://github.com/ShuiyuanSJTU/discourse-omniauth-jaccount/blob/e535f263fbfa71149d14b75b141cbb4827eb5498/plugin.rb#L147-L155
+        email = result.email.downcase
+        jaccount_name = result.username.downcase
+        jaccount_id = result.extra_data[:jaccount_uid]
+        old_by_email = UserDeletionLog.find_latest_time_by_email(email,jaccount_name)
+        old_by_jaccount_id = UserDeletionLog.find_latest_time_by_jaccount_id(jaccount_id)
+        # find the latest time, use compact to remove nil
+        old = [old_by_email, old_by_jaccount_id].compact.max
+        if !old.nil?
+          time = old.to_datetime + SiteSetting.remake_limit_period.days
+            if Time.now < time
+              result.failed = true
+              result.failed_reason = "您的账号正处于注册限制期，请于#{time.in_time_zone('Asia/Shanghai').strftime("%Y-%m-%d %H:%M:%S %Z")}之后再登录！"
+              result.name = nil
+              result.username = nil
+              result.email = nil
+              result.email_valid = nil
+              result.extra_data = nil
+            result
+            end
         end
-        ::DiscourseUserNotes.add_note(user, "查询到该用户邮箱历史账号有#{silence_count}次禁言、#{suspended_counts}次封禁记录", Discourse.system_user.id)
+        return result
       end
     end
+  end
+
+  class ::Auth::JAccountAuthenticator
+    prepend OverrideJAccountAuthenticator
   end
 end
