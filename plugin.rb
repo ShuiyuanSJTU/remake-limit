@@ -2,7 +2,7 @@
 
 # name: remake-limit
 # about: limit user remake frequency
-# version: 0.0.7
+# version: 0.1.0
 # authors: dujiajun,pangbo
 # url: https://github.com/ShuiyuanSJTU/remake-limit
 # required_version: 2.7.0
