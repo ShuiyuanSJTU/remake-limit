@@ -63,7 +63,7 @@ class UserDeletionLog < ActiveRecord::Base
         email = user.email
         jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
         if jaccount_account.nil?
-            if ignore_jaccount_not_found
+            if !ignore_jaccount_not_found
                 Rails.logger.warn("User #{user.id} has no jaccount_account")
             end
             records = UserDeletionLog.where(email: email).where("user_id != ? ",user.id)
