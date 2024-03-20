@@ -15,7 +15,7 @@ class UserDeletionLog < ActiveRecord::Base
             Rails.logger.warn("User #{user.id} has no associated jaccount")
         else
             record.jaccount_id = jaccount_account.provider_uid
-            record.jaccount_name = jaccount_account.info&.fetch('account').downcase
+            record.jaccount_name = jaccount_account.info&.[]('account').downcase
             if record.jaccount_name.nil?
                 Rails.logger.warn("User #{user.id} has an associated jaccount, but has no jaccount_name \n #{jaccount_account}")
             end
@@ -50,7 +50,7 @@ class UserDeletionLog < ActiveRecord::Base
     def self.find_latest_time(user)
         jaccount_account = user.user_associated_accounts.find_by(provider_name: JACCOUNT_PROVIDER_NAME)
         jaccount_id = jaccount_account.provider_uid
-        jaccount_name = jaccount_account.info&.fetch('account')&.downcase
+        jaccount_name = jaccount_account.info&.[]('account')&.downcase
         email = user.email.downcase
         
         record = UserDeletionLog.where("email = ? OR jaccount_name = ? OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id).where("user_deleted_at is NOT NULL").where(ignore_limit:false).order(user_deleted_at: :desc).first
@@ -69,7 +69,7 @@ class UserDeletionLog < ActiveRecord::Base
             records = UserDeletionLog.where(email: email).where("user_id != ? ",user.id)
         else
             jaccount_id = jaccount_account.provider_uid
-            jaccount_name = jaccount_account.info&.fetch('account')&.downcase
+            jaccount_name = jaccount_account.info&.[]('account')&.downcase
 
             if !jaccount_name.nil?
                 records = UserDeletionLog.where("email = ? OR jaccount_name = ? OR jaccount_id = ?",email,jaccount_name,jaccount_id).where("user_id != ? ",user.id)
