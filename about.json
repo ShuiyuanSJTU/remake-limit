@@ -1,0 +1,8 @@
+{
+    "tests": {
+        "requiredPlugins": [
+            "https://github.com/discourse/discourse-user-notes",
+            "https://github.com/ShuiyuanSJTU/discourse-omniauth-jaccount"
+        ]
+    }
+}
