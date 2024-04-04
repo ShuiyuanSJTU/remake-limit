@@ -46,7 +46,7 @@ after_initialize do
         user = fetch_user_from_params
         account_count, silence_count, suspend_count = UserDeletionLog.find_user_penalty_history(user)
         if account_count > 0
-          ::DiscourseUserNotes.add_note(user, "查询到该用户存在#{account_count}个历史账号历史账号，共有#{silence_count}次禁言、#{suspend_count}次封禁记录", Discourse.system_user.id)
+          ::DiscourseUserNotes.add_note(user, "查询到该用户存在#{account_count}个历史账号，共有#{silence_count}次禁言、#{suspend_count}次封禁记录", Discourse.system_user.id)
         end
       end
     end
