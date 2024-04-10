@@ -2,4 +2,9 @@
 
 **Plugin Summary**
 
-For more information, please see: **url to meta topic**
+## Requirements
+
+This plugin **can work alone**, but it is designed to work with the those plugins:
+
+- https://github.com/discourse/discourse-user-notes
+- https://github.com/ShuiyuanSJTU/discourse-omniauth-jaccount
