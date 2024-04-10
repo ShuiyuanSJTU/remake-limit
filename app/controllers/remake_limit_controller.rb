@@ -41,7 +41,7 @@ module ::RemakeLimit
       raise Discourse::NotFound.new("Record not found") if record.nil?
       record.ignore_limit = true
       record.save!
-      render json: { success: "ok", record: UserDeletionLogSerializer.new(record).as_json }
+      render json: { success: "ok" }
     end
   end
 end

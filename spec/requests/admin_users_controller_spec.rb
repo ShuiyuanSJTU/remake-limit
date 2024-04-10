@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "rails_helper"
+
 RSpec.describe Admin::UsersController do
   let(:delete_me) { Fabricate(:user, refresh_auto_groups: true) }
   let(:admin) { Fabricate(:admin) }
