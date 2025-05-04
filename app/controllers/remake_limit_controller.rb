@@ -1,9 +1,13 @@
+# frozen_string_literal: true
 module ::RemakeLimit
   class RemakeLimitController < ::ApplicationController
+    requires_plugin PLUGIN_NAME
     def fetch_record_from_params
       query_args = params.permit(:user_id, :email, :jaccount_name, :jaccount_id)
       if query_args.keys.length == 0
-        raise Discourse::InvalidParameters.new("At least one of user_id, email, jaccount_name, jaccount_id should be provided")
+        raise Discourse::InvalidParameters.new(
+                "At least one of user_id, email, jaccount_name, jaccount_id should be provided",
+              )
       end
       UserDeletionLog.where(query_args)
     end
@@ -29,7 +33,7 @@ module ::RemakeLimit
       raise Discourse::NotFound.new("User not found") if user.nil?
       record = UserDeletionLog.create_log(user, refresh_delete_time: true)
       if record.nil?
-        render json: { success: "fail"} , status: :unprocessable_entity
+        render json: { success: "fail" }, status: :unprocessable_entity
       else
         render json: { success: "ok" }
       end

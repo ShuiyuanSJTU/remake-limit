@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
 RSpec.describe RemakeLimit::OverrideUsersController do
   describe "POST #create" do
@@ -13,9 +13,14 @@ RSpec.describe RemakeLimit::OverrideUsersController do
         SiteSetting.remake_limit_period = 100
         @user = Fabricate.build(:user, email: "foobar@example.com", password: "strongpassword")
       end
-  
+
       let(:post_user_params) do
-        { name: @user.name, username: @user.username, password: "strongpassword", email: @user.email }
+        {
+          name: @user.name,
+          username: @user.username,
+          password: "strongpassword",
+          email: @user.email,
+        }
       end
 
       def post_user(extra_params = {})
@@ -29,8 +34,11 @@ RSpec.describe RemakeLimit::OverrideUsersController do
       end
 
       it "renders an error message if the email is within the remake limit period" do
-        UserDeletionLog.expects(:find_latest_time_by_email)\
-          .with(@user.email).returns(1.days.ago).once
+        UserDeletionLog
+          .expects(:find_latest_time_by_email)
+          .with(@user.email)
+          .returns(1.days.ago)
+          .once
         post_user
         expect(response.status).to eq(200)
         json = response.parsed_body
@@ -39,25 +47,26 @@ RSpec.describe RemakeLimit::OverrideUsersController do
       end
 
       it "does not render an error message if the email is not within the remake limit period" do
-        UserDeletionLog.expects(:find_latest_time_by_email)\
-          .with(@user.email).returns(nil)
-          # UserDeletionLog.expects(:find_user_penalty_history).returns([1, 2, 3])
-          post_user
-          expect(response.status).to eq(200)
-          json = response.parsed_body
-          expect(json["success"]).to be_truthy
-        end
-        
-        it "add a user note if the user has account history" do
-          skip "Skip if DiscourseUserNotes is not defined" unless defined?(::DiscourseUserNotes)
-          UserDeletionLog.expects(:find_latest_time_by_email)\
-            .with(@user.email).returns(nil)
-          UserDeletionLog.expects(:find_user_penalty_history)\
-          .with(instance_of(User)).returns([1, 2, 3]).once
-          post_user
-          expect(
-            DiscourseUserNotes.notes_for(User.find_by(username:@user.username).id).length
-          ).to eq(1)
+        UserDeletionLog.expects(:find_latest_time_by_email).with(@user.email).returns(nil)
+        # UserDeletionLog.expects(:find_user_penalty_history).returns([1, 2, 3])
+        post_user
+        expect(response.status).to eq(200)
+        json = response.parsed_body
+        expect(json["success"]).to be_truthy
+      end
+
+      it "add a user note if the user has account history" do
+        skip "Skip if DiscourseUserNotes is not defined" unless defined?(::DiscourseUserNotes)
+        UserDeletionLog.expects(:find_latest_time_by_email).with(@user.email).returns(nil)
+        UserDeletionLog
+          .expects(:find_user_penalty_history)
+          .with(instance_of(User))
+          .returns([1, 2, 3])
+          .once
+        post_user
+        expect(
+          DiscourseUserNotes.notes_for(User.find_by(username: @user.username).id).length,
+        ).to eq(1)
       end
     end
   end
@@ -78,7 +87,7 @@ RSpec.describe RemakeLimit::OverrideUsersController do
         expect(response.status).to eq(200)
       end
 
-      it 'should not allow user to delete account if silenced' do
+      it "should not allow user to delete account if silenced" do
         sign_in(user)
         user.update!(silenced_till: 1.day.from_now)
         delete "/u/#{user.username}.json"

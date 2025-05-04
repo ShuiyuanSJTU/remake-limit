@@ -8,27 +8,27 @@ RSpec.describe RemakeLimit do
     let(:moderator) { Fabricate(:moderator) }
     let(:admin) { Fabricate(:admin) }
     let(:record) { UserDeletionLog.find_by(email: user.email, user_id: user.id) }
-    
+
     before(:example) do
       SiteSetting.remake_limit_enabled = true
       UserDestroyer.new(moderator).destroy(user)
       sign_in(admin)
     end
-    context "can handle query" do
+    describe "can handle query" do
       it "when no params" do
         get "/remake_limit/query.json"
         expect(response.status).to eq(400)
       end
       it "when user not found" do
-        get "/remake_limit/query.json", :params => { user_id: -100 }
+        get "/remake_limit/query.json", params: { user_id: -100 }
         expect(response.status).to eq(404)
       end
       it "when using user_id " do
-        get "/remake_limit/query.json", :params => { user_id: user.id }
+        get "/remake_limit/query.json", params: { user_id: user.id }
         expect(response.status).to eq(200)
       end
       it "when using email" do
-        get "/remake_limit/query.json", :params => { email: user.email }
+        get "/remake_limit/query.json", params: { email: user.email }
         expect(response.status).to eq(200)
       end
 
@@ -40,13 +40,13 @@ RSpec.describe RemakeLimit do
           UserDestroyer.new(moderator).destroy(another_user)
         end
         it "should return all records" do
-          get "/remake_limit/query.json", :params => { email: email }
+          get "/remake_limit/query.json", params: { email: email }
           expect(response.status).to eq(200)
           expect(JSON.parse(response.body).length).to eq(2)
         end
       end
     end
-    context "can handle ignore" do
+    describe "can handle ignore" do
       it "when record not found" do
         delete "/remake_limit/id/-100.json"
         expect(response.status).to eq(404)
@@ -57,7 +57,7 @@ RSpec.describe RemakeLimit do
         expect(record.reload.ignore_limit).to eq(true)
       end
     end
-    context "can handle create_for_user" do
+    describe "can handle create_for_user" do
       it "when user not found" do
         put "/remake_limit/-100.json"
         expect(response.status).to eq(404)
@@ -71,7 +71,7 @@ RSpec.describe RemakeLimit do
         expect(new_record.ignore_limit).to eq(false)
       end
     end
-    context "can handle ignore_for_user" do
+    describe "can handle ignore_for_user" do
       it "when user not found" do
         delete "/remake_limit/user/-100.json"
         expect(response.status).to eq(404)

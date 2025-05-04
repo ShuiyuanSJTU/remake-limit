@@ -1,15 +1,13 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
 RSpec.describe UserDeletionLog, type: :model do
   let(:user) { Fabricate(:user) }
 
   describe ".create_log" do
     it "creates a user deletion log record" do
-      expect {
-        UserDeletionLog.create_log(user)
-      }.to change(UserDeletionLog, :count).by(1)
+      expect { UserDeletionLog.create_log(user) }.to change(UserDeletionLog, :count).by(1)
     end
 
     it "creates a user deletion log record many times" do
@@ -31,8 +29,12 @@ RSpec.describe UserDeletionLog, type: :model do
   describe ".find_latest_time_by_email" do
     it "can handle case-insensitive email" do
       log = UserDeletionLog.create(email: user.email.downcase, user_deleted_at: Time.now)
-      expect(UserDeletionLog.find_latest_time_by_email(user.email.downcase)).to eq(log.user_deleted_at)
-      expect(UserDeletionLog.find_latest_time_by_email(user.email.upcase)).to eq(log.user_deleted_at)
+      expect(UserDeletionLog.find_latest_time_by_email(user.email.downcase)).to eq(
+        log.user_deleted_at,
+      )
+      expect(UserDeletionLog.find_latest_time_by_email(user.email.upcase)).to eq(
+        log.user_deleted_at,
+      )
     end
 
     it "returns nil if no user deletion log record is found" do

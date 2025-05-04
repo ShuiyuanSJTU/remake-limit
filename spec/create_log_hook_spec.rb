@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
 RSpec.describe RemakeLimit do
   include ActiveSupport::Testing::TimeHelpers
@@ -15,8 +15,8 @@ RSpec.describe RemakeLimit do
       end
       log = UserDeletionLog.find_by(email: user.email, user_id: user.id)
       expect(log).to be_present
-      expect(log.user_deleted_at).to eq(delete_time)
-      expect(log.created_at).to eq(delete_time)
+      expect(log.user_deleted_at).to eq_time(delete_time)
+      expect(log.created_at).to eq_time(delete_time)
       expect(log.ignore_limit).to eq(false)
     end
     it "when moderator anonymous user" do
@@ -27,8 +27,8 @@ RSpec.describe RemakeLimit do
       end
       log = UserDeletionLog.find_by(email: prev_email, user_id: user.id)
       expect(log).to be_present
-      expect(log.user_deleted_at).to eq(delete_time)
-      expect(log.created_at).to eq(delete_time)
+      expect(log.user_deleted_at).to eq_time(delete_time)
+      expect(log.created_at).to eq_time(delete_time)
       expect(log.ignore_limit).to eq(false)
     end
   end

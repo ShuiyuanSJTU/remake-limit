@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
 RSpec.describe RemakeLimit::OverrideJAccountAuthenticator do
   skip "jaccount authenticator is not installed" unless defined?(::Auth::JAccountAuthenticator)
@@ -16,7 +16,7 @@ RSpec.describe RemakeLimit::OverrideJAccountAuthenticator do
         email: email,
         name: "李四",
         code: "114514",
-        type: "student"
+        type: "student",
       },
       extra: {
         raw_info: {
@@ -39,10 +39,16 @@ RSpec.describe RemakeLimit::OverrideJAccountAuthenticator do
 
     context "when invoked from authenticator" do
       it "should fails if the user is in remake limit period" do
-        UserDeletionLog.expects(:find_latest_time_by_email)\
-          .with(email, jaccount_name:"lisi").returns(1.days.ago).once
-        UserDeletionLog.expects(:find_latest_time_by_jaccount_id)\
-          .with(jac_uid).returns(2.days.ago).once
+        UserDeletionLog
+          .expects(:find_latest_time_by_email)
+          .with(email, jaccount_name: "lisi")
+          .returns(1.days.ago)
+          .once
+        UserDeletionLog
+          .expects(:find_latest_time_by_jaccount_id)
+          .with(jac_uid)
+          .returns(2.days.ago)
+          .once
         result = authenticator.after_authenticate(hash)
         expect(result.failed).to be_truthy
         expect(result.user).to be_nil
