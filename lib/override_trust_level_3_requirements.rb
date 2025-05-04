@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module RemakeLimit
+module ::RemakeLimit
   module OverrideTrustLevel3Requirements
     def penalty_counts_all_time
       args = {

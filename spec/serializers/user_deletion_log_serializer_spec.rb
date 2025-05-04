@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe RemakeLimit::UserDeletionLogSerializer do
+RSpec.describe UserDeletionLogSerializer do
   let(:user) { Fabricate(:user) }
   let(:user_deletion_log) { UserDeletionLog.create_log(user) }
   let(:serializer) { described_class.new(user_deletion_log) }

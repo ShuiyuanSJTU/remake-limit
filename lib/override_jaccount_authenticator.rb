@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module ::RemakeLimit
-  module OverrideJAccountAuthenticator
+  module OverrideJaccountAuthenticator
     def after_authenticate(auth_token)
       result = super(auth_token)
       if result.failed || !result.user.nil? || !SiteSetting.remake_limit_enabled

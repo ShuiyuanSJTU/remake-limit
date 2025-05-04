@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module RemakeLimit
+module ::RemakeLimit
   module OverrideUsersController
     extend ActiveSupport::Concern
 

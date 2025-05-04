@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe RemakeLimit::OverrideJAccountAuthenticator do
+RSpec.describe RemakeLimit::OverrideJaccountAuthenticator do
   skip "jaccount authenticator is not installed" unless defined?(::Auth::JAccountAuthenticator)
 
   let(:jac_uid) { "AAAAAAAA-1111-BBBB-AACC-AAAAZZZZCCCC" }
